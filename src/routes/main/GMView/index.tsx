@@ -1,11 +1,13 @@
-import { useStore } from "../../../store";
+import { useTokenIds } from "../../../hooks/owlbear";
+import InitiativeCard from "./initiativeCard";
 
 export default function GMView() {
-  const tokens = useStore((state) => state.tokens);
+  const tokenIds = useTokenIds();
   return (
     <div>
-      GM
-      <pre>{JSON.stringify(tokens, undefined, 2)}</pre>
+      {tokenIds.map((id) => (
+        <InitiativeCard key={id} tokenId={id} />
+      ))}
     </div>
   );
 }
