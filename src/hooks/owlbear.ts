@@ -171,19 +171,20 @@ const setupAddToInitiative = () => {
 
 export const useTokenIds = () => {
   const tokenIds = useStore((state) =>
-    state.tokens
-      .sort((ta, tb) => {
-        const aMeta = getInitiativeMetadata(ta) || ({} as TokenMeta);
-        const bMeta = getInitiativeMetadata(tb) || ({} as TokenMeta);
-        if (!aMeta && !bMeta) return 0;
-        if (!aMeta) return 1;
-        if (!bMeta) return -1;
-        return (bMeta.initiativeCount || 0) - (aMeta.initiativeCount || 0);
-      })
-      .map((token) => token.id)
+    getOrderedTokens(state.tokens).map((token) => token.id)
   );
   return tokenIds;
 };
+
+const getOrderedTokens = (tokens: Token[]) =>
+  tokens.sort((ta, tb) => {
+    const aMeta = getInitiativeMetadata(ta) || ({} as TokenMeta);
+    const bMeta = getInitiativeMetadata(tb) || ({} as TokenMeta);
+    if (!aMeta && !bMeta) return 0;
+    if (!aMeta) return 1;
+    if (!bMeta) return -1;
+    return (bMeta.initiativeCount || 0) - (aMeta.initiativeCount || 0);
+  });
 
 export const setInitiativeMetaData = (
   item: Token,
@@ -223,4 +224,64 @@ export const useToken: (
     });
   };
   return [token as Token, setToken, setTokenName];
+};
+
+export const useScene: () => [
+  SceneMeta,
+  (update: Partial<SceneMeta>) => void
+] = () => {
+  const scene = useStore((state) => state.scene);
+  const updateScene = async (update: Partial<SceneMeta>) => {
+    const currentScene = await OBR.scene.getMetadata();
+    const scene = getSceneMetadata(currentScene);
+    OBR.scene.setMetadata({
+      [SCENE_METADATA_KEY]: {
+        ...scene,
+        ...update,
+      },
+    });
+  };
+  return [scene, updateScene];
+};
+
+export const resetInitiative = (ids: string[]) => {
+  OBR.scene.items.updateItems(ids, (items) => {
+    for (const item of items) {
+      setInitiativeMetaData(item, { initiativeCount: 0 });
+    }
+  });
+};
+
+export const useCurrentInitiative = (tokenId: string) => {
+  const [scene] = useScene();
+  const isCurrent =
+    scene.currentInitiativeToken === tokenId && (scene.inCombat as boolean);
+  return isCurrent;
+};
+
+export const setNextToken = async () => {
+  const metadata = await OBR.scene.getMetadata();
+  const scene = getSceneMetadata(metadata);
+  const tokens = getOrderedTokens(useStore.getState().tokens);
+  const currentId = scene.currentInitiativeToken;
+  let currentLocation = tokens.findIndex((v) => v.id === currentId);
+  if (currentLocation === null || currentLocation === undefined) {
+    currentLocation = -1;
+  }
+  let rounds = scene.rounds;
+  if (rounds === null || rounds === undefined) {
+    rounds = 1;
+  }
+  if (currentLocation === tokens.length - 1) {
+    rounds = rounds + 1;
+  }
+  const newLocation = (currentLocation + 1) % tokens.length;
+  const newId = tokens[newLocation].id;
+  OBR.scene.setMetadata({
+    [SCENE_METADATA_KEY]: {
+      ...scene,
+      currentInitiativeToken: newId,
+      rounds,
+    },
+  });
 };

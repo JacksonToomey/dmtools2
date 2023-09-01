@@ -1,5 +1,9 @@
 import classNames from "classnames";
-import { getInitiativeMetadata, useToken } from "../../../../hooks/owlbear";
+import {
+  getInitiativeMetadata,
+  useCurrentInitiative,
+  useToken,
+} from "../../../../hooks/owlbear";
 import AC from "./AC";
 import Damage from "./Damage";
 import DamageList from "./DamageList";
@@ -11,11 +15,12 @@ import TokenName from "./TokenName";
 export default function InitiativeCard({ tokenId }: { tokenId: string }) {
   const [token] = useToken(tokenId);
   const metadata = getInitiativeMetadata(token) || {};
+  const currentInitiative = useCurrentInitiative(tokenId);
   return (
     <div
       className={classNames("card", "mb-2", {
-        "bg-primary": false,
-        "bg-base-200": true,
+        "bg-primary": currentInitiative,
+        "bg-base-200": !currentInitiative,
       })}
     >
       <div className="card-body p-2">
