@@ -18,8 +18,8 @@ export default function Controls() {
     if (!inCombat) {
       resetInitiative(ids);
       setCurrentDate(new Date());
-      start.current = new Date();
     }
+    start.current = new Date();
   };
 
   const handleNext = () => {
